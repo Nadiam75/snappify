@@ -1,0 +1,47 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+.venv
+
+# OCR Results
+ocr_results/
+*.json
+*.png
+*.jpg
+*.jpeg
+!test_images/*.jpg
+!test_images/*.png
+
+# Model weights and checkpoints
+*.pth
+*.pt
+*.ckpt
+*.weights
+
+# SwinTextSpotter
+SwinTextSpotter/
+detectron2/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Logs
+*.log
+
