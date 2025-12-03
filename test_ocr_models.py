@@ -3,7 +3,24 @@ OCR Model Testing Script for Snappify
 Tests EasyOCR, PaddleOCR, TrOCR, and SwinTextSpotter on input images
 """
 
+# Fix PIL.Image compatibility issue for Pillow 10.0+
+# This monkey patch fixes the issue where Image.LINEAR doesn't exist in newer Pillow versions
+try:
+    from PIL import Image
+    # If Image.LINEAR doesn't exist, add it for backward compatibility
+    if not hasattr(Image, 'LINEAR'):
+        if hasattr(Image, 'Resampling'):
+            # Pillow 10.0+ uses different constant names
+            Image.LINEAR = Image.Resampling.BILINEAR  # LINEAR was removed, use BILINEAR
+            Image.NEAREST = Image.Resampling.NEAREST
+            Image.BILINEAR = Image.Resampling.BILINEAR
+            Image.BICUBIC = Image.Resampling.BICUBIC
+            Image.LANCZOS = Image.Resampling.LANCZOS
+except ImportError:
+    pass
+
 import os
+import sys
 import cv2
 import numpy as np
 from pathlib import Path
@@ -11,6 +28,17 @@ import json
 from datetime import datetime
 from typing import Dict, List, Tuple, Optional
 import warnings
+
+# Fix Windows console encoding for Unicode characters
+if sys.platform == "win32":
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+        sys.stderr.reconfigure(encoding='utf-8')
+    except (AttributeError, ValueError):
+        # Fallback for older Python versions
+        import io
+        sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+        sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
 
 warnings.filterwarnings("ignore")
 
@@ -98,9 +126,9 @@ class OCRTester:
             try:
                 use_gpu = TORCH_AVAILABLE and torch.cuda.is_available()
                 self.easyocr_reader = easyocr.Reader(["en", "fa"], gpu=use_gpu)
-                print("✓ EasyOCR initialized successfully")
+                print("[OK] EasyOCR initialized successfully")
             except Exception as e:
-                print(f"✗ EasyOCR initialization failed: {e}")
+                print(f"[ERROR] EasyOCR initialization failed: {e}")
                 self.easyocr_reader = None
 
         # Initialize PaddleOCR
@@ -111,9 +139,9 @@ class OCRTester:
                 self.paddleocr_reader = PaddleOCR(
                     use_angle_cls=True, lang="en", use_gpu=use_gpu
                 )
-                print("✓ PaddleOCR initialized successfully")
+                print("[OK] PaddleOCR initialized successfully")
             except Exception as e:
-                print(f"✗ PaddleOCR initialization failed: {e}")
+                print(f"[ERROR] PaddleOCR initialization failed: {e}")
                 self.paddleocr_reader = None
 
         # Initialize TrOCR
@@ -136,9 +164,9 @@ class OCRTester:
                     )
                     self.trocr_model.to(self.device)
                     self.trocr_model.eval()
-                    print("✓ TrOCR initialized successfully")
+                    print("[OK] TrOCR initialized successfully")
             except Exception as e:
-                print(f"✗ TrOCR initialization failed: {e}")
+                print(f"[ERROR] TrOCR initialization failed: {e}")
                 self.trocr_processor = None
                 self.trocr_model = None
 
@@ -147,15 +175,17 @@ class OCRTester:
     def test_easyocr(self, image_path: str) -> Dict:
         """Test EasyOCR on an image"""
         if not self.easyocr_reader:
-            return {"error": "EasyOCR not initialized"}
+            return {"model": "EasyOCR", "success": False, "error": "EasyOCR not initialized"}
 
         try:
             results = self.easyocr_reader.readtext(image_path)
 
             extracted_texts = []
             for bbox, text, confidence in results:
+                # Convert numpy types to native Python types for JSON serialization
+                bbox_list = [[float(x), float(y)] for x, y in bbox]
                 extracted_texts.append(
-                    {"text": text, "confidence": float(confidence), "bbox": bbox}
+                    {"text": text, "confidence": float(confidence), "bbox": bbox_list}
                 )
 
             return {
@@ -171,7 +201,7 @@ class OCRTester:
     def test_paddleocr(self, image_path: str) -> Dict:
         """Test PaddleOCR on an image"""
         if not self.paddleocr_reader:
-            return {"error": "PaddleOCR not initialized"}
+            return {"model": "PaddleOCR", "success": False, "error": "PaddleOCR not initialized"}
 
         try:
             results = self.paddleocr_reader.ocr(image_path, cls=True)
@@ -180,8 +210,10 @@ class OCRTester:
             if results and results[0]:
                 for line in results[0]:
                     bbox, (text, confidence) = line
+                    # Convert numpy types to native Python types for JSON serialization
+                    bbox_list = [[float(x), float(y)] for x, y in bbox] if isinstance(bbox[0], (list, tuple)) else bbox
                     extracted_texts.append(
-                        {"text": text, "confidence": float(confidence), "bbox": bbox}
+                        {"text": text, "confidence": float(confidence), "bbox": bbox_list}
                     )
 
             return {
@@ -197,7 +229,7 @@ class OCRTester:
     def test_trocr(self, image_path: str) -> Dict:
         """Test TrOCR on an image"""
         if not self.trocr_processor or not self.trocr_model:
-            return {"error": "TrOCR not initialized"}
+            return {"model": "TrOCR", "success": False, "error": "TrOCR not initialized"}
 
         try:
             if not TORCH_AVAILABLE or self.device is None:
@@ -273,11 +305,9 @@ class OCRTester:
             print("Running TrOCR...")
             results["models"]["TrOCR"] = self.test_trocr(image_path)
 
-        if SWINTEXTSPOTTER_AVAILABLE:
-            print("Running SwinTextSpotter...")
-            results["models"]["SwinTextSpotter"] = self.test_swintextspotter(image_path)
-        else:
-            results["models"]["SwinTextSpotter"] = self.test_swintextspotter(image_path)
+        # Always try SwinTextSpotter (it will handle errors internally)
+        print("Running SwinTextSpotter...")
+        results["models"]["SwinTextSpotter"] = self.test_swintextspotter(image_path)
 
         return results
 
@@ -292,6 +322,17 @@ class OCRTester:
 
         for ext in extensions:
             image_files.extend(list(image_dir.glob(f"*{ext}")))
+
+        # Remove duplicates (case-insensitive matching)
+        seen = set()
+        unique_files = []
+        for img_path in image_files:
+            key = str(img_path).lower()
+            if key not in seen:
+                seen.add(key)
+                unique_files.append(img_path)
+        
+        image_files = unique_files
 
         if not image_files:
             print(f"No images found in {image_dir}")

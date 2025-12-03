@@ -16,11 +16,19 @@ timm>=0.6.0
 scipy>=1.7.0
 shapely>=1.8.0
 rapidfuzz>=2.0.0
-Polygon3>=3.0.0
+# Polygon3>=3.0.0  # Optional - requires Visual C++ Build Tools on Windows
 matplotlib>=3.5.0
 pandas>=1.3.0
 
-# For SwinTextSpotter (if using detectron2)
-# Note: detectron2 needs to be installed separately based on your CUDA version
+# For SwinTextSpotter and Detectron2 dependencies
+# Note: detectron2 itself needs to be installed separately based on your CUDA version
 # pip install detectron2 -f https://dl.fbaipublicfiles.com/detectron2/wheels/cu111/torch1.8/index.html
+# But these are dependencies that detectron2 requires:
+pycocotools>=2.0.0
+fvcore>=0.1.5
+iopath>=0.1.7
+yacs>=0.1.8
+tabulate>=0.8.9
+cloudpickle>=1.5.0
+tqdm>=4.62.0
 

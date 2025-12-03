@@ -18,26 +18,45 @@ import cv2
 import json
 from typing import Dict, Optional
 
+# Fix PIL.Image compatibility issue for Pillow 10.0+
+# This monkey patch fixes the issue where Image.LINEAR doesn't exist in newer Pillow versions
+try:
+    from PIL import Image
+
+    # If Image.LINEAR doesn't exist, add it for backward compatibility
+    if not hasattr(Image, "LINEAR"):
+        if hasattr(Image, "Resampling"):
+            # LINEAR was removed in Pillow 10.0+, use BILINEAR instead
+            Image.LINEAR = Image.Resampling.BILINEAR
+            Image.NEAREST = Image.Resampling.NEAREST
+            Image.BILINEAR = Image.Resampling.BILINEAR
+            Image.BICUBIC = Image.Resampling.BICUBIC
+            Image.LANCZOS = Image.Resampling.LANCZOS
+except ImportError:
+    pass
+
 
 def setup_swintextspotter_path():
     """Add SwinTextSpotter to Python path if it exists"""
     swintextspotter_path = Path("SwinTextSpotter")
-    
+
     if swintextspotter_path.exists():
         sys.path.insert(0, str(swintextspotter_path))
         return True
     return False
 
 
-def test_swintextspotter(image_path: str, config_path: str = None, weights_path: str = None) -> Dict:
+def test_swintextspotter(
+    image_path: str, config_path: str = None, weights_path: str = None
+) -> Dict:
     """
     Test SwinTextSpotter on an image
-    
+
     Args:
         image_path: Path to input image
         config_path: Path to SwinTextSpotter config file
         weights_path: Path to model weights
-    
+
     Returns:
         Dictionary with results
     """
@@ -50,33 +69,51 @@ def test_swintextspotter(image_path: str, config_path: str = None, weights_path:
                 "1. Clone SwinTextSpotter: git clone https://github.com/mxin262/SwinTextSpotter.git",
                 "2. Install detectron2 (see README)",
                 "3. Download model weights",
-                "4. Run: python setup.py build develop (in SwinTextSpotter directory)"
-            ]
+                "4. Run: python setup.py build develop (in SwinTextSpotter directory)",
+            ],
         }
-    
+
     try:
         # Try to import SwinTextSpotter modules
-        from detectron2.engine import DefaultPredictor
-        from detectron2.config import get_cfg
-        from detectron2.utils.visualizer import Visualizer
-        from detectron2.data import MetadataCatalog
-        
+        try:
+            from detectron2.engine import DefaultPredictor
+            from detectron2.config import get_cfg
+            from detectron2.utils.visualizer import Visualizer
+            from detectron2.data import MetadataCatalog
+        except ImportError as import_err:
+            # Check if it's the _C module error (detectron2 not built)
+            if "_C" in str(import_err) or "cannot import name '_C'" in str(import_err):
+                return {
+                    "model": "SwinTextSpotter",
+                    "success": False,
+                    "error": "Detectron2 not properly built. The _C module is missing. Detectron2 needs to be compiled from source or installed from pre-built wheels.",
+                    "setup_instructions": [
+                        "1. Detectron2 requires compilation. For Windows, you may need to:",
+                        "   - Install Visual Studio Build Tools with C++ support",
+                        "   - Or use pre-built wheels: pip install detectron2 -f https://dl.fbaipublicfiles.com/detectron2/wheels/",
+                        "2. For CPU-only: pip install detectron2 -f https://dl.fbaipublicfiles.com/detectron2/wheels/cpu/torch1.8/index.html",
+                        "3. Check detectron2 installation: python -c 'import detectron2; print(detectron2.__version__)'"
+                    ]
+                }
+            else:
+                raise  # Re-raise if it's a different import error
+
         # Default config path if not provided
         if config_path is None:
             config_path = "SwinTextSpotter/projects/SWINTS/configs/SWINTS-swin-finetune-totaltext.yaml"
-        
+
         if not Path(config_path).exists():
             return {
                 "model": "SwinTextSpotter",
                 "success": False,
                 "error": f"Config file not found: {config_path}",
-                "note": "Please download config files from SwinTextSpotter repository"
+                "note": "Please download config files from SwinTextSpotter repository",
             }
-        
+
         # Load config
         cfg = get_cfg()
         cfg.merge_from_file(config_path)
-        
+
         if weights_path:
             cfg.MODEL.WEIGHTS = weights_path
         elif not cfg.MODEL.WEIGHTS:
@@ -84,52 +121,50 @@ def test_swintextspotter(image_path: str, config_path: str = None, weights_path:
                 "model": "SwinTextSpotter",
                 "success": False,
                 "error": "Model weights not specified",
-                "note": "Please download model weights and specify path"
+                "note": "Please download model weights and specify path",
             }
-        
+
         # Create predictor
         predictor = DefaultPredictor(cfg)
-        
+
         # Read and process image
         image = cv2.imread(image_path)
         if image is None:
             return {
                 "model": "SwinTextSpotter",
                 "success": False,
-                "error": f"Could not load image: {image_path}"
+                "error": f"Could not load image: {image_path}",
             }
-        
+
         # Run prediction
         outputs = predictor(image)
-        
+
         # Extract text detections and recognitions
         instances = outputs["instances"]
-        
+
         texts = []
-        if hasattr(instances, 'pred_boxes') and hasattr(instances, 'rec_texts'):
+        if hasattr(instances, "pred_boxes") and hasattr(instances, "rec_texts"):
             boxes = instances.pred_boxes.tensor.cpu().numpy()
-            rec_texts = instances.rec_texts if hasattr(instances, 'rec_texts') else []
-            scores = instances.scores.cpu().numpy() if hasattr(instances, 'scores') else []
-            
+            rec_texts = instances.rec_texts if hasattr(instances, "rec_texts") else []
+            scores = (
+                instances.scores.cpu().numpy() if hasattr(instances, "scores") else []
+            )
+
             for i, (box, text) in enumerate(zip(boxes, rec_texts)):
                 x1, y1, x2, y2 = box
                 bbox = [[x1, y1], [x2, y1], [x2, y2], [x1, y2]]
                 confidence = float(scores[i]) if len(scores) > i else 1.0
-                
-                texts.append({
-                    "text": text,
-                    "confidence": confidence,
-                    "bbox": bbox
-                })
-        
+
+                texts.append({"text": text, "confidence": confidence, "bbox": bbox})
+
         return {
             "model": "SwinTextSpotter",
             "success": True,
             "texts": texts,
             "full_text": " ".join([t["text"] for t in texts]),
-            "num_detections": len(texts)
+            "num_detections": len(texts),
         }
-        
+
     except ImportError as e:
         return {
             "model": "SwinTextSpotter",
@@ -138,32 +173,27 @@ def test_swintextspotter(image_path: str, config_path: str = None, weights_path:
             "setup_instructions": [
                 "1. Install detectron2: pip install detectron2 -f https://dl.fbaipublicfiles.com/detectron2/wheels/cu111/torch1.8/index.html",
                 "2. Make sure SwinTextSpotter is properly installed",
-                "3. Check CUDA version compatibility"
-            ]
+                "3. Check CUDA version compatibility",
+            ],
         }
     except Exception as e:
-        return {
-            "model": "SwinTextSpotter",
-            "success": False,
-            "error": str(e)
-        }
+        return {"model": "SwinTextSpotter", "success": False, "error": str(e)}
 
 
 def main():
     """Example usage"""
     import argparse
-    
+
     parser = argparse.ArgumentParser(description="Test SwinTextSpotter on an image")
     parser.add_argument("--image", type=str, required=True, help="Path to input image")
     parser.add_argument("--config", type=str, help="Path to config file")
     parser.add_argument("--weights", type=str, help="Path to model weights")
-    
+
     args = parser.parse_args()
-    
+
     result = test_swintextspotter(args.image, args.config, args.weights)
     print(json.dumps(result, indent=2, ensure_ascii=False))
 
 
 if __name__ == "__main__":
     main()
-
