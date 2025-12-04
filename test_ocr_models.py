@@ -251,25 +251,68 @@ class OCRTester:
             }
 
         try:
-            results = self.paddleocr_reader.ocr(image_path, cls=True)
+            # Try with cls parameter first (older versions), fallback without it (newer versions)
+            try:
+                results = self.paddleocr_reader.ocr(image_path, cls=True)
+            except (TypeError, ValueError) as e:
+                # Newer versions don't support cls parameter
+                if "cls" in str(e) or "Unknown argument" in str(e):
+                    results = self.paddleocr_reader.ocr(image_path)
+                else:
+                    raise
 
             extracted_texts = []
-            if results and results[0]:
-                for line in results[0]:
-                    bbox, (text, confidence) = line
-                    # Convert numpy types to native Python types for JSON serialization
-                    bbox_list = (
-                        [[float(x), float(y)] for x, y in bbox]
-                        if isinstance(bbox[0], (list, tuple))
-                        else bbox
-                    )
-                    extracted_texts.append(
-                        {
-                            "text": text,
-                            "confidence": float(confidence),
-                            "bbox": bbox_list,
-                        }
-                    )
+            if results and len(results) > 0:
+                result = results[0]
+                
+                # Check if it's the new format (dict with rec_texts, rec_scores, rec_polys)
+                if isinstance(result, dict) and 'rec_texts' in result:
+                    # New PaddleOCR 3.x format
+                    rec_texts = result.get('rec_texts', [])
+                    rec_scores = result.get('rec_scores', [])
+                    rec_polys = result.get('rec_polys', [])
+                    
+                    for i, text in enumerate(rec_texts):
+                        if text and text.strip():  # Skip empty texts
+                            confidence = rec_scores[i] if i < len(rec_scores) else 0.0
+                            bbox = rec_polys[i] if i < len(rec_polys) else []
+                            
+                            # Convert bbox to list format
+                            if hasattr(bbox, 'tolist'):
+                                bbox_list = bbox.tolist()
+                            elif isinstance(bbox, (list, tuple)):
+                                bbox_list = [[float(x), float(y)] for x, y in bbox] if len(bbox) > 0 and isinstance(bbox[0], (list, tuple)) else bbox
+                            else:
+                                bbox_list = []
+                            
+                            extracted_texts.append({
+                                "text": str(text),
+                                "confidence": float(confidence),
+                                "bbox": bbox_list,
+                            })
+                else:
+                    # Old PaddleOCR format: list of [bbox, (text, confidence)]
+                    for line in result if isinstance(result, list) else []:
+                        if isinstance(line, list) and len(line) >= 2:
+                            bbox = line[0]
+                            text_data = line[1]
+                            
+                            if isinstance(text_data, tuple) and len(text_data) >= 2:
+                                text, confidence = text_data[0], text_data[1]
+                            else:
+                                text, confidence = text_data, 0.0
+                            
+                            # Convert numpy types to native Python types for JSON serialization
+                            bbox_list = (
+                                [[float(x), float(y)] for x, y in bbox]
+                                if isinstance(bbox[0], (list, tuple))
+                                else bbox
+                            )
+                            extracted_texts.append({
+                                "text": str(text),
+                                "confidence": float(confidence),
+                                "bbox": bbox_list,
+                            })
 
             return {
                 "model": "PaddleOCR",

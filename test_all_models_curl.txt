@@ -1,0 +1,15 @@
+# Test All OCR Models and Save Output
+
+# Basic command - saves to all_models_result.json
+curl -X POST "http://localhost:8000/ocr" \
+  -H "accept: application/json" \
+  -H "Content-Type: multipart/form-data" \
+  -F "file=@1.jpg" \
+  -o all_models_result.json
+
+# View the saved result (pretty print)
+cat all_models_result.json | python -m json.tool
+
+# Or on Windows PowerShell:
+# Get-Content all_models_result.json | ConvertFrom-Json | ConvertTo-Json -Depth 10
+
