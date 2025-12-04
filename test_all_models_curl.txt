@@ -1,10 +1,11 @@
 # Test All OCR Models and Save Output
+# Note: Images are stored in the dataset/ directory
 
 # Basic command - saves to all_models_result.json
 curl -X POST "http://localhost:8000/ocr" \
   -H "accept: application/json" \
   -H "Content-Type: multipart/form-data" \
-  -F "file=@1.jpg" \
+  -F "file=@dataset/1.jpg" \
   -o all_models_result.json
 
 # View the saved result (pretty print)

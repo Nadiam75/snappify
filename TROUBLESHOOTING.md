@@ -96,11 +96,11 @@ python run_server.py --port 8001
 If EasyOCR fails, try other models:
 
 ```bash
-# Test with PaddleOCR only
-curl -X POST "http://localhost:8000/ocr?models=PaddleOCR" -F "file=@1.jpg"
+# Test with PaddleOCR only (images are in dataset/ directory)
+curl -X POST "http://localhost:8000/ocr?models=PaddleOCR" -F "file=@dataset/1.jpg"
 
 # Test with TrOCR only
-curl -X POST "http://localhost:8000/ocr?models=TrOCR" -F "file=@1.jpg"
+curl -X POST "http://localhost:8000/ocr?models=TrOCR" -F "file=@dataset/1.jpg"
 ```
 
 ### Step 5: Reinstall EasyOCR

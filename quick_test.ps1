@@ -25,14 +25,14 @@ $models | ConvertTo-Json -Depth 5
 Write-Host ""
 Write-Host "3. Testing OCR on first available image..." -ForegroundColor Yellow
 
-# Find first image
-$image = Get-ChildItem -Filter "*.jpg" | Select-Object -First 1
+# Find first image in dataset directory
+$image = Get-ChildItem -Path "dataset" -Filter "*.jpg" -ErrorAction SilentlyContinue | Select-Object -First 1
 if (-not $image) {
-    $image = Get-ChildItem -Filter "*.png" | Select-Object -First 1
+    $image = Get-ChildItem -Path "dataset" -Filter "*.png" -ErrorAction SilentlyContinue | Select-Object -First 1
 }
 
 if (-not $image) {
-    Write-Host "✗ No images found in current directory" -ForegroundColor Red
+    Write-Host "✗ No images found in dataset/ directory" -ForegroundColor Red
     exit 1
 }
 

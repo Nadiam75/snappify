@@ -108,7 +108,7 @@ class OCRTester:
         self.paddleocr_reader = None
         self.trocr_processor = None
         self.trocr_model = None
-        
+
         # Store initialization errors
         self.init_errors = {}
 
@@ -160,7 +160,11 @@ class OCRTester:
                 except (TypeError, ValueError, Exception) as e:
                     error_str = str(e)
                     # If error mentions use_gpu or use_angle_cls, try without them
-                    if "use_gpu" in error_str or "use_angle_cls" in error_str or "Unknown argument" in error_str:
+                    if (
+                        "use_gpu" in error_str
+                        or "use_angle_cls" in error_str
+                        or "Unknown argument" in error_str
+                    ):
                         # Try with just lang parameter (newer versions)
                         self.paddleocr_reader = PaddleOCR(lang="en")
                     else:
@@ -277,11 +281,14 @@ class OCRTester:
                             confidence = rec_scores[i] if i < len(rec_scores) else 0.0
                             bbox = rec_polys[i] if i < len(rec_polys) else []
                             
-                            # Convert bbox to list format
-                            if hasattr(bbox, 'tolist'):
-                                bbox_list = bbox.tolist()
-                            elif isinstance(bbox, (list, tuple)):
-                                bbox_list = [[float(x), float(y)] for x, y in bbox] if len(bbox) > 0 and isinstance(bbox[0], (list, tuple)) else bbox
+                            # Convert bbox to list format - check if bbox is not empty before accessing
+                            if len(bbox) > 0:
+                                if hasattr(bbox, 'tolist'):
+                                    bbox_list = bbox.tolist()
+                                elif isinstance(bbox, (list, tuple)) and len(bbox) > 0 and isinstance(bbox[0], (list, tuple)):
+                                    bbox_list = [[float(x), float(y)] for x, y in bbox]
+                                else:
+                                    bbox_list = bbox if isinstance(bbox, list) else []
                             else:
                                 bbox_list = []
                             
@@ -303,11 +310,12 @@ class OCRTester:
                                 text, confidence = text_data, 0.0
                             
                             # Convert numpy types to native Python types for JSON serialization
-                            bbox_list = (
-                                [[float(x), float(y)] for x, y in bbox]
-                                if isinstance(bbox[0], (list, tuple))
-                                else bbox
-                            )
+                            # Check if bbox is not empty before accessing bbox[0]
+                            if len(bbox) > 0 and isinstance(bbox[0], (list, tuple)):
+                                bbox_list = [[float(x), float(y)] for x, y in bbox]
+                            else:
+                                bbox_list = bbox if bbox else []
+                            
                             extracted_texts.append({
                                 "text": str(text),
                                 "confidence": float(confidence),
@@ -412,10 +420,10 @@ class OCRTester:
 
     def process_images(
         self,
-        image_dir: str = ".",
+        image_dir: str = "dataset",
         extensions: List[str] = [".jpg", ".jpeg", ".png", ".JPG", ".PNG"],
     ):
-        """Process all images in a directory"""
+        """Process all images in a directory (default: dataset/)"""
         image_dir = Path(image_dir)
         image_files = []
 

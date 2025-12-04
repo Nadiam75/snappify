@@ -13,8 +13,8 @@ def example_single_image():
     tester = OCRTester()
     tester.initialize_models()
     
-    # Test on image 7.jpg
-    result = tester.test_all_models("7.jpg")
+    # Test on image from dataset directory
+    result = tester.test_all_models("dataset/7.jpg")
     
     # Access results
     for model_name, model_result in result['models'].items():
@@ -48,7 +48,7 @@ def example_model_comparison():
     tester = OCRTester()
     tester.initialize_models()
     
-    image_path = "7.jpg"
+    image_path = "dataset/7.jpg"
     
     # Test only EasyOCR and PaddleOCR
     easyocr_result = tester.test_easyocr(image_path)
@@ -75,7 +75,7 @@ def example_extract_menu_items():
     tester = OCRTester()
     tester.initialize_models()
     
-    result = tester.test_all_models("7.jpg")
+    result = tester.test_all_models("dataset/7.jpg")
     
     # Use PaddleOCR results (usually best for structured text)
     if 'PaddleOCR' in result['models']:
@@ -92,12 +92,13 @@ def example_extract_menu_items():
 
 if __name__ == "__main__":
     # Run examples
-    if Path("7.jpg").exists():
+    if Path("dataset/7.jpg").exists():
         example_single_image()
         example_model_comparison()
         example_extract_menu_items()
     else:
-        print("Image 7.jpg not found. Please run examples with your own images.")
+        print("Image dataset/7.jpg not found. Please run examples with your own images.")
+        print("Note: Images should be placed in the dataset/ directory.")
     
     # Uncomment to run batch processing
     # example_batch_processing()

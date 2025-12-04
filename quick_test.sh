@@ -26,10 +26,10 @@ echo "$MODELS" | python -m json.tool
 echo ""
 echo "3. Testing OCR on first available image..."
 
-# Find first image
-IMAGE=$(ls *.jpg *.png 2>/dev/null | head -1)
+# Find first image in dataset directory
+IMAGE=$(ls dataset/*.jpg dataset/*.png 2>/dev/null | head -1)
 if [ -z "$IMAGE" ]; then
-    echo "✗ No images found in current directory"
+    echo "✗ No images found in dataset/ directory"
     exit 1
 fi
 

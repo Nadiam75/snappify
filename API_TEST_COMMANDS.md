@@ -8,6 +8,8 @@ Make sure your server is running:
 python run_server.py --reload
 ```
 
+**Note**: All images are stored in the `dataset/` directory. All commands below use `dataset/` paths.
+
 ---
 
 ## 1. Health Check
@@ -31,10 +33,11 @@ curl http://localhost:8000/models | python -m json.tool
 
 ## 3. Test OCR - Single Image (All Models)
 ```bash
+# Note: Images are stored in the dataset/ directory
 curl -X POST "http://localhost:8000/ocr" \
   -H "accept: application/json" \
   -H "Content-Type: multipart/form-data" \
-  -F "file=@1.jpg"
+  -F "file=@dataset/1.jpg"
 ```
 
 Pretty print:
@@ -42,7 +45,7 @@ Pretty print:
 curl -X POST "http://localhost:8000/ocr" \
   -H "accept: application/json" \
   -H "Content-Type: multipart/form-data" \
-  -F "file=@1.jpg" | python -m json.tool
+  -F "file=@dataset/1.jpg" | python -m json.tool
 ```
 
 ---
@@ -54,7 +57,7 @@ curl -X POST "http://localhost:8000/ocr" \
 curl -X POST "http://localhost:8000/ocr?models=EasyOCR" \
   -H "accept: application/json" \
   -H "Content-Type: multipart/form-data" \
-  -F "file=@1.jpg"
+  -F "file=@dataset/1.jpg"
 ```
 
 ### PaddleOCR only:
@@ -62,7 +65,7 @@ curl -X POST "http://localhost:8000/ocr?models=EasyOCR" \
 curl -X POST "http://localhost:8000/ocr?models=PaddleOCR" \
   -H "accept: application/json" \
   -H "Content-Type: multipart/form-data" \
-  -F "file=@1.jpg"
+  -F "file=@dataset/1.jpg"
 ```
 
 ### EasyOCR + PaddleOCR:
@@ -70,7 +73,7 @@ curl -X POST "http://localhost:8000/ocr?models=PaddleOCR" \
 curl -X POST "http://localhost:8000/ocr?models=EasyOCR,PaddleOCR" \
   -H "accept: application/json" \
   -H "Content-Type: multipart/form-data" \
-  -F "file=@1.jpg"
+  -F "file=@dataset/1.jpg"
 ```
 
 ### All models except one:
@@ -78,23 +81,23 @@ curl -X POST "http://localhost:8000/ocr?models=EasyOCR,PaddleOCR" \
 curl -X POST "http://localhost:8000/ocr?models=EasyOCR,PaddleOCR,TrOCR" \
   -H "accept: application/json" \
   -H "Content-Type: multipart/form-data" \
-  -F "file=@1.jpg"
+  -F "file=@dataset/1.jpg"
 ```
 
 ---
 
 ## 5. Test Different Image Files
 ```bash
-# Test with different images
+# Test with different images from dataset directory
 curl -X POST "http://localhost:8000/ocr" \
   -H "accept: application/json" \
   -H "Content-Type: multipart/form-data" \
-  -F "file=@2.jpg"
+  -F "file=@dataset/2.jpg"
 
 curl -X POST "http://localhost:8000/ocr" \
   -H "accept: application/json" \
   -H "Content-Type: multipart/form-data" \
-  -F "file=@3.png"
+  -F "file=@dataset/3.png"
 ```
 
 ---
@@ -104,9 +107,9 @@ curl -X POST "http://localhost:8000/ocr" \
 curl -X POST "http://localhost:8000/ocr/batch" \
   -H "accept: application/json" \
   -H "Content-Type: multipart/form-data" \
-  -F "files=@1.jpg" \
-  -F "files=@2.jpg" \
-  -F "files=@3.jpg"
+  -F "files=@dataset/1.jpg" \
+  -F "files=@dataset/2.jpg" \
+  -F "files=@dataset/3.jpg"
 ```
 
 ---
@@ -116,7 +119,7 @@ curl -X POST "http://localhost:8000/ocr/batch" \
 curl -X POST "http://localhost:8000/ocr" \
   -H "accept: application/json" \
   -H "Content-Type: multipart/form-data" \
-  -F "file=@1.jpg" \
+  -F "file=@dataset/1.jpg" \
   -o result.json
 ```
 
@@ -140,7 +143,7 @@ echo -e "\n3. OCR Test:"
 curl -s -X POST "http://localhost:8000/ocr?models=EasyOCR,PaddleOCR" \
   -H "accept: application/json" \
   -H "Content-Type: multipart/form-data" \
-  -F "file=@1.jpg" | python -m json.tool
+  -F "file=@dataset/1.jpg" | python -m json.tool
 ```
 
 ---
@@ -152,7 +155,7 @@ curl http://localhost:8001/health
 curl -X POST "http://localhost:8001/ocr" \
   -H "accept: application/json" \
   -H "Content-Type: multipart/form-data" \
-  -F "file=@1.jpg"
+  -F "file=@dataset/1.jpg"
 ```
 
 ---
@@ -163,7 +166,7 @@ curl -X POST "http://localhost:8001/ocr" \
 curl -X POST "http://localhost:8000/ocr" \
   -H "accept: application/json" \
   -H "Content-Type: multipart/form-data" \
-  -F "file=@1.jpg" -o result.json
+  -F "file=@dataset/1.jpg" -o result.json
 
 # Extract EasyOCR text
 python -c "import json; data=json.load(open('result.json')); print('EasyOCR:', data['models']['EasyOCR'].get('full_text', 'N/A'))"
@@ -179,7 +182,7 @@ python -c "import json; data=json.load(open('result.json')); print('PaddleOCR:',
 curl -X POST "http://localhost:8000/ocr" \
   -H "accept: application/json" \
   -H "Content-Type: multipart/form-data" \
-  -F "file=@1.jpg" | python -c "import sys, json; d=json.load(sys.stdin); print(f\"Processing time: {d.get('processing_time_ms', 'N/A')} ms\")"
+  -F "file=@dataset/1.jpg" | python -c "import sys, json; d=json.load(sys.stdin); print(f\"Processing time: {d.get('processing_time_ms', 'N/A')} ms\")"
 ```
 
 ---
@@ -199,7 +202,7 @@ curl -X POST "http://localhost:8000/ocr" \
 curl -X POST "http://localhost:8000/ocr?models=InvalidModel" \
   -H "accept: application/json" \
   -H "Content-Type: multipart/form-data" \
-  -F "file=@1.jpg"
+  -F "file=@dataset/1.jpg"
 ```
 
 ---
@@ -222,7 +225,7 @@ echo "3. OCR Test (EasyOCR + PaddleOCR):"
 curl -s -X POST "http://localhost:8000/ocr?models=EasyOCR,PaddleOCR" \
   -H "accept: application/json" \
   -H "Content-Type: multipart/form-data" \
-  -F "file=@1.jpg" | python -m json.tool
+  -F "file=@dataset/1.jpg" | python -m json.tool
 ```
 
 Save as `test_api.sh`, make executable, and run:

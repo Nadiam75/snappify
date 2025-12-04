@@ -13,11 +13,15 @@ def main():
     if len(sys.argv) > 1:
         image_path = sys.argv[1]
     else:
-        # Try to find any image in current directory
-        image_files = list(Path(".").glob("*.jpg")) + list(Path(".").glob("*.png"))
+        # Try to find any image in dataset directory
+        dataset_path = Path("dataset")
+        image_files = []
+        if dataset_path.exists():
+            image_files = list(dataset_path.glob("*.jpg")) + list(dataset_path.glob("*.png"))
         if not image_files:
-            print("No images found. Please provide an image path:")
+            print("No images found in dataset/ directory. Please provide an image path:")
             print("  python quick_test.py <image_path>")
+            print("  or place images in the dataset/ directory")
             return
         image_path = str(image_files[0])
         print(f"Using first found image: {image_path}")

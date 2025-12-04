@@ -93,11 +93,11 @@ Even if you install the library later, the running server still has `EASYOCR_AVA
 # Check models
 curl http://localhost:8000/models | python -m json.tool
 
-# Test OCR
+# Test OCR (images are in dataset/ directory)
 curl -X POST "http://localhost:8000/ocr?models=EasyOCR,PaddleOCR" \
   -H "accept: application/json" \
   -H "Content-Type: multipart/form-data" \
-  -F "file=@1.jpg" | python -m json.tool
+  -F "file=@dataset/1.jpg" | python -m json.tool
 ```
 
 ---

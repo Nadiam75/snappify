@@ -43,23 +43,23 @@ curl http://localhost:8000/models
 
 #### 3. Test OCR on an Image
 ```bash
-# Test with all models
+# Test with all models (images are in dataset/ directory)
 curl -X POST "http://localhost:8000/ocr" \
   -H "accept: application/json" \
   -H "Content-Type: multipart/form-data" \
-  -F "file=@1.jpg"
+  -F "file=@dataset/1.jpg"
 
 # Test with specific models only
 curl -X POST "http://localhost:8000/ocr?models=EasyOCR,PaddleOCR" \
   -H "accept: application/json" \
   -H "Content-Type: multipart/form-data" \
-  -F "file=@1.jpg"
+  -F "file=@dataset/1.jpg"
 
 # Save result to file
 curl -X POST "http://localhost:8000/ocr" \
   -H "accept: application/json" \
   -H "Content-Type: multipart/form-data" \
-  -F "file=@1.jpg" \
+  -F "file=@dataset/1.jpg" \
   -o result.json
 ```
 
@@ -91,8 +91,8 @@ print(json.dumps(response.json(), indent=2))
 response = requests.get("http://localhost:8000/models")
 print(json.dumps(response.json(), indent=2))
 
-# Test OCR
-with open("1.jpg", "rb") as f:
+# Test OCR (images are in dataset/ directory)
+with open("dataset/1.jpg", "rb") as f:
     files = {"file": f}
     response = requests.post("http://localhost:8000/ocr", files=files)
     
@@ -171,7 +171,7 @@ python run_server.py --reload
 python test_api.py
 
 # Or test with curl
-curl -X POST "http://localhost:8000/ocr" -F "file=@1.jpg" | ConvertFrom-Json | ConvertTo-Json -Depth 10
+curl -X POST "http://localhost:8000/ocr" -F "file=@dataset/1.jpg" | ConvertFrom-Json | ConvertTo-Json -Depth 10
 ```
 
 ### Linux/Mac:
@@ -183,32 +183,33 @@ python run_server.py --reload
 python test_api.py
 
 # Or test with curl
-curl -X POST "http://localhost:8000/ocr" -F "file=@1.jpg" | jq .
+curl -X POST "http://localhost:8000/ocr" -F "file=@dataset/1.jpg" | jq .
 ```
 
 ## Testing Different Scenarios
 
 ### Test with All Models (Default)
 ```bash
-curl -X POST "http://localhost:8000/ocr" -F "file=@1.jpg"
+# Note: Images are in dataset/ directory
+curl -X POST "http://localhost:8000/ocr" -F "file=@dataset/1.jpg"
 ```
 
 ### Test with Only EasyOCR
 ```bash
-curl -X POST "http://localhost:8000/ocr?models=EasyOCR" -F "file=@1.jpg"
+curl -X POST "http://localhost:8000/ocr?models=EasyOCR" -F "file=@dataset/1.jpg"
 ```
 
 ### Test with EasyOCR and PaddleOCR
 ```bash
-curl -X POST "http://localhost:8000/ocr?models=EasyOCR,PaddleOCR" -F "file=@1.jpg"
+curl -X POST "http://localhost:8000/ocr?models=EasyOCR,PaddleOCR" -F "file=@dataset/1.jpg"
 ```
 
 ### Test Batch Processing (Multiple Images)
 ```bash
 curl -X POST "http://localhost:8000/ocr/batch" \
-  -F "files=@1.jpg" \
-  -F "files=@2.jpg" \
-  -F "files=@3.jpg"
+  -F "files=@dataset/1.jpg" \
+  -F "files=@dataset/2.jpg" \
+  -F "files=@dataset/3.jpg"
 ```
 
 ## Viewing Results in a Readable Format
@@ -216,7 +217,7 @@ curl -X POST "http://localhost:8000/ocr/batch" \
 ### Save and View JSON:
 ```bash
 # Save result
-curl -X POST "http://localhost:8000/ocr" -F "file=@1.jpg" -o result.json
+curl -X POST "http://localhost:8000/ocr" -F "file=@dataset/1.jpg" -o result.json
 
 # View with Python
 python -c "import json; print(json.dumps(json.load(open('result.json')), indent=2, ensure_ascii=False))"
@@ -259,7 +260,7 @@ curl http://localhost:8000/models
 # Use different port
 python run_server.py --port 8001
 # Then test with:
-curl -X POST "http://localhost:8001/ocr" -F "file=@1.jpg"
+curl -X POST "http://localhost:8001/ocr" -F "file=@dataset/1.jpg"
 ```
 
 ### Image not found?
@@ -270,6 +271,6 @@ dir *.jpg
 ls *.jpg
 
 # Use correct filename
-curl -X POST "http://localhost:8000/ocr" -F "file=@your_image.jpg"
+curl -X POST "http://localhost:8000/ocr" -F "file=@dataset/your_image.jpg"
 ```
 

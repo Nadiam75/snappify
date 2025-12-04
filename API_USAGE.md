@@ -53,17 +53,17 @@ POST /ocr
 
 **Example using curl:**
 ```bash
-# Process with all models
+# Process with all models (images are in dataset/ directory)
 curl -X POST "http://localhost:8000/ocr" \
   -H "accept: application/json" \
   -H "Content-Type: multipart/form-data" \
-  -F "file=@image.jpg"
+  -F "file=@dataset/image.jpg"
 
 # Process with specific models
 curl -X POST "http://localhost:8000/ocr?models=EasyOCR,PaddleOCR" \
   -H "accept: application/json" \
   -H "Content-Type: multipart/form-data" \
-  -F "file=@image.jpg"
+  -F "file=@dataset/image.jpg"
 ```
 
 **Example using Python:**
@@ -71,7 +71,7 @@ curl -X POST "http://localhost:8000/ocr?models=EasyOCR,PaddleOCR" \
 import requests
 
 url = "http://localhost:8000/ocr"
-files = {"file": open("image.jpg", "rb")}
+files = {"file": open("dataset/image.jpg", "rb")}
 response = requests.post(url, files=files)
 print(response.json())
 ```
@@ -90,8 +90,8 @@ POST /ocr/batch
 curl -X POST "http://localhost:8000/ocr/batch" \
   -H "accept: application/json" \
   -H "Content-Type: multipart/form-data" \
-  -F "files=@image1.jpg" \
-  -F "files=@image2.jpg"
+  -F "files=@dataset/image1.jpg" \
+  -F "files=@dataset/image2.jpg"
 ```
 
 ## Response Format

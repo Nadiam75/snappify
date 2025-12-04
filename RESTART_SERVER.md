@@ -29,10 +29,11 @@ OCR models initialized successfully!
 
 ### 4. Test Again
 ```bash
+# Note: Images are stored in the dataset/ directory
 curl -X POST "http://localhost:8000/ocr?models=EasyOCR,PaddleOCR" \
   -H "accept: application/json" \
   -H "Content-Type: multipart/form-data" \
-  -F "file=@1.jpg"
+  -F "file=@dataset/1.jpg"
 ```
 
 ### 5. Check Model Status

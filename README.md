@@ -64,14 +64,14 @@ python setup.py build develop
 
 ### Basic Testing
 
-Run all OCR models on images in the current directory:
+Run all OCR models on images in the dataset directory:
 
 ```bash
 python test_ocr_models.py
 ```
 
 This will:
-- Process all `.jpg`, `.jpeg`, `.png` images in the current directory
+- Process all `.jpg`, `.jpeg`, `.png` images in the `dataset/` directory
 - Run all available OCR models on each image
 - Save results to `ocr_results/` directory
 - Generate JSON files with detailed results
@@ -96,7 +96,7 @@ You can modify `test_ocr_models.py` to test a specific image:
 ```python
 tester = OCRTester()
 tester.initialize_models()
-result = tester.test_all_models("path/to/image.jpg")
+result = tester.test_all_models("dataset/image.jpg")  # Images are in dataset/ directory
 ```
 
 ### SwinTextSpotter Only
@@ -104,7 +104,7 @@ result = tester.test_all_models("path/to/image.jpg")
 Test SwinTextSpotter on a specific image:
 
 ```bash
-python swintextspotter_integration.py --image 7.jpg --config path/to/config.yaml --weights path/to/weights.pth
+python swintextspotter_integration.py --image dataset/7.jpg --config path/to/config.yaml --weights path/to/weights.pth
 ```
 
 ## Output Structure

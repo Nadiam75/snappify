@@ -33,7 +33,7 @@ echo "3. OCR Test:"
 curl -s -X POST "http://localhost:8000/ocr?models=EasyOCR,PaddleOCR" \
   -H "accept: application/json" \
   -H "Content-Type: multipart/form-data" \
-  -F "file=@1.jpg" | python -m json.tool
+  -F "file=@dataset/1.jpg" | python -m json.tool
 
 echo ""
 echo "=========================================="
