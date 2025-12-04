@@ -7,9 +7,10 @@ Tests EasyOCR, PaddleOCR, TrOCR, and SwinTextSpotter on input images
 # This monkey patch fixes the issue where Image.LINEAR doesn't exist in newer Pillow versions
 try:
     from PIL import Image
+
     # If Image.LINEAR doesn't exist, add it for backward compatibility
-    if not hasattr(Image, 'LINEAR'):
-        if hasattr(Image, 'Resampling'):
+    if not hasattr(Image, "LINEAR"):
+        if hasattr(Image, "Resampling"):
             # Pillow 10.0+ uses different constant names
             Image.LINEAR = Image.Resampling.BILINEAR  # LINEAR was removed, use BILINEAR
             Image.NEAREST = Image.Resampling.NEAREST
@@ -32,13 +33,18 @@ import warnings
 # Fix Windows console encoding for Unicode characters
 if sys.platform == "win32":
     try:
-        sys.stdout.reconfigure(encoding='utf-8')
-        sys.stderr.reconfigure(encoding='utf-8')
+        sys.stdout.reconfigure(encoding="utf-8")
+        sys.stderr.reconfigure(encoding="utf-8")
     except (AttributeError, ValueError):
         # Fallback for older Python versions
         import io
-        sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
-        sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
+
+        sys.stdout = io.TextIOWrapper(
+            sys.stdout.buffer, encoding="utf-8", errors="replace"
+        )
+        sys.stderr = io.TextIOWrapper(
+            sys.stderr.buffer, encoding="utf-8", errors="replace"
+        )
 
 warnings.filterwarnings("ignore")
 
@@ -102,6 +108,9 @@ class OCRTester:
         self.paddleocr_reader = None
         self.trocr_processor = None
         self.trocr_model = None
+        
+        # Store initialization errors
+        self.init_errors = {}
 
         # Set device (default to CPU if torch not available)
         if TORCH_AVAILABLE:
@@ -127,9 +136,14 @@ class OCRTester:
                 use_gpu = TORCH_AVAILABLE and torch.cuda.is_available()
                 self.easyocr_reader = easyocr.Reader(["en", "fa"], gpu=use_gpu)
                 print("[OK] EasyOCR initialized successfully")
+                self.init_errors["EasyOCR"] = None
             except Exception as e:
-                print(f"[ERROR] EasyOCR initialization failed: {e}")
+                error_msg = str(e)
+                print(f"[ERROR] EasyOCR initialization failed: {error_msg}")
                 self.easyocr_reader = None
+                self.init_errors["EasyOCR"] = error_msg
+        else:
+            self.init_errors["EasyOCR"] = "EasyOCR library not installed"
 
         # Initialize PaddleOCR
         if PADDLEOCR_AVAILABLE:
@@ -140,18 +154,25 @@ class OCRTester:
                     use_angle_cls=True, lang="en", use_gpu=use_gpu
                 )
                 print("[OK] PaddleOCR initialized successfully")
+                self.init_errors["PaddleOCR"] = None
             except Exception as e:
-                print(f"[ERROR] PaddleOCR initialization failed: {e}")
+                error_msg = str(e)
+                print(f"[ERROR] PaddleOCR initialization failed: {error_msg}")
                 self.paddleocr_reader = None
+                self.init_errors["PaddleOCR"] = error_msg
+        else:
+            self.init_errors["PaddleOCR"] = "PaddleOCR library not installed"
 
         # Initialize TrOCR
         if TROCR_AVAILABLE:
             print("Initializing TrOCR...")
             try:
                 if not TORCH_AVAILABLE or self.device is None:
-                    print("✗ TrOCR requires PyTorch")
+                    error_msg = "TrOCR requires PyTorch"
+                    print(f"✗ {error_msg}")
                     self.trocr_processor = None
                     self.trocr_model = None
+                    self.init_errors["TrOCR"] = error_msg
                 else:
                     processor_name = "microsoft/trocr-base-printed"
                     model_name = "microsoft/trocr-base-printed"
@@ -165,17 +186,26 @@ class OCRTester:
                     self.trocr_model.to(self.device)
                     self.trocr_model.eval()
                     print("[OK] TrOCR initialized successfully")
+                    self.init_errors["TrOCR"] = None
             except Exception as e:
-                print(f"[ERROR] TrOCR initialization failed: {e}")
+                error_msg = str(e)
+                print(f"[ERROR] TrOCR initialization failed: {error_msg}")
                 self.trocr_processor = None
                 self.trocr_model = None
+                self.init_errors["TrOCR"] = error_msg
+        else:
+            self.init_errors["TrOCR"] = "TrOCR library not installed"
 
         print("=" * 50 + "\n")
 
     def test_easyocr(self, image_path: str) -> Dict:
         """Test EasyOCR on an image"""
         if not self.easyocr_reader:
-            return {"model": "EasyOCR", "success": False, "error": "EasyOCR not initialized"}
+            return {
+                "model": "EasyOCR",
+                "success": False,
+                "error": "EasyOCR not initialized",
+            }
 
         try:
             results = self.easyocr_reader.readtext(image_path)
@@ -201,7 +231,11 @@ class OCRTester:
     def test_paddleocr(self, image_path: str) -> Dict:
         """Test PaddleOCR on an image"""
         if not self.paddleocr_reader:
-            return {"model": "PaddleOCR", "success": False, "error": "PaddleOCR not initialized"}
+            return {
+                "model": "PaddleOCR",
+                "success": False,
+                "error": "PaddleOCR not initialized",
+            }
 
         try:
             results = self.paddleocr_reader.ocr(image_path, cls=True)
@@ -211,9 +245,17 @@ class OCRTester:
                 for line in results[0]:
                     bbox, (text, confidence) = line
                     # Convert numpy types to native Python types for JSON serialization
-                    bbox_list = [[float(x), float(y)] for x, y in bbox] if isinstance(bbox[0], (list, tuple)) else bbox
+                    bbox_list = (
+                        [[float(x), float(y)] for x, y in bbox]
+                        if isinstance(bbox[0], (list, tuple))
+                        else bbox
+                    )
                     extracted_texts.append(
-                        {"text": text, "confidence": float(confidence), "bbox": bbox_list}
+                        {
+                            "text": text,
+                            "confidence": float(confidence),
+                            "bbox": bbox_list,
+                        }
                     )
 
             return {
@@ -229,7 +271,11 @@ class OCRTester:
     def test_trocr(self, image_path: str) -> Dict:
         """Test TrOCR on an image"""
         if not self.trocr_processor or not self.trocr_model:
-            return {"model": "TrOCR", "success": False, "error": "TrOCR not initialized"}
+            return {
+                "model": "TrOCR",
+                "success": False,
+                "error": "TrOCR not initialized",
+            }
 
         try:
             if not TORCH_AVAILABLE or self.device is None:
@@ -292,22 +338,19 @@ class OCRTester:
             "models": {},
         }
 
-        # Test each model
-        if EASYOCR_AVAILABLE and self.easyocr_reader:
-            print("Running EasyOCR...")
-            results["models"]["EasyOCR"] = self.test_easyocr(image_path)
+        # Test all models - always attempt all models (they handle errors internally)
+        # Order: PaddleOCR, TrOCR, SwinTextSpotter, EasyOCR
+        print("Running PaddleOCR...")
+        results["models"]["PaddleOCR"] = self.test_paddleocr(image_path)
 
-        if PADDLEOCR_AVAILABLE and self.paddleocr_reader:
-            print("Running PaddleOCR...")
-            results["models"]["PaddleOCR"] = self.test_paddleocr(image_path)
+        print("Running TrOCR...")
+        results["models"]["TrOCR"] = self.test_trocr(image_path)
 
-        if TROCR_AVAILABLE and self.trocr_processor:
-            print("Running TrOCR...")
-            results["models"]["TrOCR"] = self.test_trocr(image_path)
-
-        # Always try SwinTextSpotter (it will handle errors internally)
         print("Running SwinTextSpotter...")
         results["models"]["SwinTextSpotter"] = self.test_swintextspotter(image_path)
+
+        print("Running EasyOCR...")
+        results["models"]["EasyOCR"] = self.test_easyocr(image_path)
 
         return results
 
@@ -331,7 +374,7 @@ class OCRTester:
             if key not in seen:
                 seen.add(key)
                 unique_files.append(img_path)
-        
+
         image_files = unique_files
 
         if not image_files:
