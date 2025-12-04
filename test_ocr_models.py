@@ -149,17 +149,23 @@ class OCRTester:
         if PADDLEOCR_AVAILABLE:
             print("Initializing PaddleOCR...")
             try:
-                # Try with use_gpu first (older versions)
-                use_gpu = TORCH_AVAILABLE and torch.cuda.is_available()
+                # Try different parameter combinations for different PaddleOCR versions
+                # Newer versions (3.x) don't support use_gpu or use_angle_cls
                 try:
+                    # Try with use_gpu and use_angle_cls (older versions)
+                    use_gpu = TORCH_AVAILABLE and torch.cuda.is_available()
                     self.paddleocr_reader = PaddleOCR(
                         use_angle_cls=True, lang="en", use_gpu=use_gpu
                     )
-                except TypeError:
-                    # Newer versions might not support use_gpu, try without it
-                    self.paddleocr_reader = PaddleOCR(
-                        use_angle_cls=True, lang="en"
-                    )
+                except (TypeError, ValueError, Exception) as e:
+                    error_str = str(e)
+                    # If error mentions use_gpu or use_angle_cls, try without them
+                    if "use_gpu" in error_str or "use_angle_cls" in error_str or "Unknown argument" in error_str:
+                        # Try with just lang parameter (newer versions)
+                        self.paddleocr_reader = PaddleOCR(lang="en")
+                    else:
+                        # Re-raise if it's a different error
+                        raise
                 print("[OK] PaddleOCR initialized successfully")
                 self.init_errors["PaddleOCR"] = None
             except Exception as e:
